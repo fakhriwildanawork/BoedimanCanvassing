@@ -1,42 +1,49 @@
-import React, { useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import React, { useState, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { Plus, Edit2, Trash2, MapPin, User, Phone } from 'lucide-react';
 import { CanvassingPin } from '../types';
 import { PRIMARY_BUTTON, HEADING_TEXT, CARD_CONTAINER } from '../../../ui/styles/tokens';
+import { APP_LOGO } from '../../../logic/utils/assets';
 
-const dealIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
+const createCustomMarker = (color: string) => {
+  return L.divIcon({
+    className: 'custom-div-icon',
+    html: `
+      <div style="position: relative; width: 30px; height: 42px; display: flex; align-items: center; justify-content: center;">
+        <svg width="30" height="42" viewBox="0 0 30 42" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0px 3px 4px rgba(0,0,0,0.35)); position: absolute; top: 0; left: 0;">
+          <path d="M15 0C6.71573 0 0 6.71573 0 15C0 26.25 15 42 15 42C15 42 30 26.25 30 15C30 6.71573 23.2843 0 15 0Z" fill="${color}"/>
+          <circle cx="15" cy="15" r="5" fill="white"/>
+        </svg>
+      </div>
+    `,
+    iconSize: [30, 42],
+    iconAnchor: [15, 42],
+    popupAnchor: [0, -36]
+  });
+};
 
-const negotiateIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
-
-const failIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
+const dealIcon = createCustomMarker('#0d9488');      // Teal Success
+const negotiateIcon = createCustomMarker('#f97316'); // Bright Vibrant Orange
+const failIcon = createCustomMarker('#ef4444');      // Red Fail
 
 const getStatusIcon = (status: string) => {
   if (status === 'DEAL') return dealIcon;
   if (status === 'NEGOTIATE') return negotiateIcon;
   return failIcon;
 };
+
+// Map updater to automatically fit bounds when pins change or filter changes
+function MapUpdater({ pins }: { pins: CanvassingPin[] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (pins && pins.length > 0) {
+      const bounds = L.latLngBounds(pins.map(p => [p.lokasi.lat, p.lokasi.lng]));
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+    }
+  }, [pins, map]);
+  return null;
+}
 
 interface CanvassingDashboardProps {
   pins: CanvassingPin[];
@@ -61,10 +68,11 @@ export default function CanvassingDashboard({ pins, loading, onAdd, onEdit, onVi
             <span className="font-bold text-teal-600 animate-pulse">Memuat Peta...</span>
           </div>
         )}
-        <MapContainer center={[-6.2088, 106.8456]} zoom={12} style={{ height: '100%', width: '100%' }}>
+        <MapContainer center={[-6.2088, 106.8456]} zoom={12} style={{ height: '100%', width: '100%' }} attributionControl={false}>
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
+          <MapUpdater pins={filteredPins.length > 0 ? filteredPins : pins} />
           {pins.map(pin => (
             <Marker 
               key={pin.id} 
@@ -78,6 +86,11 @@ export default function CanvassingDashboard({ pins, loading, onAdd, onEdit, onVi
             </Marker>
           ))}
         </MapContainer>
+        {/* Custom Watermark */}
+        <div className="absolute bottom-2 right-2 bg-white/95 backdrop-blur-sm px-2.5 py-1.5 rounded-lg shadow-sm border border-gray-100 flex items-center gap-1.5 z-[1000] pointer-events-none text-[10px] font-bold text-gray-700">
+          <img src={APP_LOGO} alt="Boediman Logo" className="w-4 h-4 rounded-md object-cover" />
+          <span>Boediman Maps</span>
+        </div>
       </div>
 
       {/* Table Section */}
@@ -108,7 +121,7 @@ export default function CanvassingDashboard({ pins, loading, onAdd, onEdit, onVi
         </div>
 
         {/* Card List representation */}
-        <div className="space-y-3">
+        <div className="space-y-2">
           {loading ? (
             <div className="text-center py-12 font-medium text-teal-600 animate-pulse">
               Memuat Data...
@@ -122,7 +135,7 @@ export default function CanvassingDashboard({ pins, loading, onAdd, onEdit, onVi
               <div 
                 key={pin.id} 
                 onClick={() => onView(pin)}
-                className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col gap-3 relative overflow-hidden"
+                className="bg-white border border-gray-100 rounded-xl p-3 shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-between gap-3 relative overflow-hidden pl-5"
               >
                 {/* Left side accent indicator */}
                 <div className={`absolute top-0 left-0 bottom-0 w-1.5 ${
@@ -131,65 +144,45 @@ export default function CanvassingDashboard({ pins, loading, onAdd, onEdit, onVi
                   'bg-red-500'
                 }`} />
 
-                {/* Header info */}
-                <div className="flex justify-between items-start pl-2">
-                  <div className="flex-1 min-w-0 pr-4">
-                    <h3 className="font-bold text-gray-800 text-sm sm:text-base truncate">{pin.namaTitik}</h3>
-                    <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-teal-500 shrink-0" />
-                      <span className="truncate">{pin.patokanLokasi}</span>
-                    </p>
-                  </div>
-                  <span className={`px-2 py-1 rounded-lg text-[10px] sm:text-xs font-extrabold uppercase shrink-0 ${
-                    pin.status === 'DEAL' ? 'bg-teal-50 text-teal-600 border border-teal-100' :
-                    pin.status === 'NEGOTIATE' ? 'bg-orange-50 text-orange-600 border border-orange-100' :
-                    'bg-red-50 text-red-600 border border-red-100'
-                  }`}>
-                    {pin.status === 'DEAL' ? 'Success (Deal)' : pin.status === 'NEGOTIATE' ? 'Negotiate' : 'Fail'}
-                  </span>
-                </div>
-
-                {/* Body info */}
-                <div className="grid grid-cols-2 gap-2 text-xs bg-gray-50/50 p-2.5 rounded-lg pl-4">
-                  <div className="space-y-1">
-                    <p className="text-gray-400 font-medium">PIC</p>
-                    <div className="flex items-center gap-1 text-gray-700 font-bold">
-                      <User className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                      <span className="truncate">{pin.namaPIC}</span>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-gray-400 font-medium">No. HP</p>
-                    <div className="flex items-center gap-1 text-gray-700 font-bold">
-                      <Phone className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                      <span className="truncate">{pin.noHP}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Footer details & actions */}
-                <div className="flex justify-between items-center pl-2 text-xs">
-                  <div className="text-gray-500 flex items-center gap-1 font-medium">
-                    <span className="text-gray-400">Kuota:</span>
-                    <span className="font-bold text-gray-700">{pin.kuotaPenjualan} pcs/hari</span>
+                {/* Left: Info details (1-2 lines) */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-gray-800 text-sm sm:text-base truncate">{pin.namaTitik}</span>
+                    <span className={`px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] font-extrabold uppercase shrink-0 ${
+                      pin.status === 'DEAL' ? 'bg-teal-50 text-teal-600 border border-teal-100' :
+                      pin.status === 'NEGOTIATE' ? 'bg-orange-50 text-orange-600 border border-orange-100' :
+                      'bg-red-50 text-red-600 border border-red-100'
+                    }`}>
+                      {pin.status === 'DEAL' ? 'Success' : pin.status === 'NEGOTIATE' ? 'Nego' : 'Fail'}
+                    </span>
                   </div>
                   
-                  <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                    <button 
-                      onClick={() => onEdit(pin)} 
-                      className="p-2 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
-                      title="Edit"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button 
-                      onClick={() => onDelete(pin.id)} 
-                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Hapus"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                  {/* Row 2: Sub-details in single compact line */}
+                  <p className="text-[11px] sm:text-xs text-gray-500 mt-1 flex items-center gap-1.5 flex-wrap">
+                    <span className="font-semibold text-gray-700">{pin.namaPIC}</span>
+                    <span className="text-gray-300">•</span>
+                    <span className="text-gray-400">{pin.noHP}</span>
+                    <span className="text-gray-300">•</span>
+                    <span className="text-gray-400">Kuota: <strong className="text-gray-600 font-bold">{pin.kuotaPenjualan}</strong></span>
+                  </p>
+                </div>
+
+                {/* Right: Actions clearly visible without hover */}
+                <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+                  <button 
+                    onClick={() => onEdit(pin)} 
+                    className="p-1.5 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors border border-gray-100 bg-gray-50/50"
+                    title="Edit"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button 
+                    onClick={() => onDelete(pin.id)} 
+                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-gray-100 bg-gray-50/50"
+                    title="Hapus"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             ))

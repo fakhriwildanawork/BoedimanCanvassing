@@ -1,8 +1,20 @@
 import { useState, useEffect } from 'react';
+import Swal from 'sweetalert2';
 import { CanvassingPin } from './types';
 import CanvassingDashboard from './components/CanvassingDashboard';
 import CanvasForm from './components/CanvasForm';
 import CanvassingDetail from './components/CanvassingDetail';
+
+const Toast = Swal.mixin({
+  toast: true,
+  position: 'top-end',
+  showConfirmButton: false,
+  timer: 3000,
+  timerProgressBar: true,
+  customClass: {
+    popup: 'rounded-xl shadow-lg border border-gray-100'
+  }
+});
 
 export default function CanvassingModule() {
   const [view, setView] = useState<'DASHBOARD' | 'FORM' | 'DETAIL'>('DASHBOARD');
@@ -56,17 +68,45 @@ export default function CanvassingModule() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus data ini? Semua file foto terkait akan dihapus permanen.')) return;
+    const result = await Swal.fire({
+      title: 'Apakah Anda yakin?',
+      text: 'Semua file foto terkait akan dihapus secara permanen!',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#0d9488', // teal-600
+      cancelButtonColor: '#9ca3af', // gray-400
+      confirmButtonText: 'Ya, hapus!',
+      cancelButtonText: 'Batal',
+      background: '#ffffff',
+      customClass: {
+        popup: 'rounded-2xl',
+        confirmButton: 'rounded-xl px-4 py-2 font-bold text-sm',
+        cancelButton: 'rounded-xl px-4 py-2 font-bold text-sm'
+      }
+    });
+
+    if (!result.isConfirmed) return;
+
     try {
       const res = await fetch(`/api/canvassing/${id}`, { method: 'DELETE' });
       if (res.ok) {
         await fetchPins();
+        Toast.fire({
+          icon: 'success',
+          title: 'Data canvassing telah berhasil dihapus!'
+        });
       } else {
-        alert('Gagal menghapus data');
+        Toast.fire({
+          icon: 'error',
+          title: 'Gagal menghapus data canvassing.'
+        });
       }
     } catch (err) {
       console.error(err);
-      alert('Terjadi kesalahan saat menghapus data');
+      Toast.fire({
+        icon: 'error',
+        title: 'Terjadi kesalahan saat menghapus data.'
+      });
     }
   };
 

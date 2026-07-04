@@ -10,33 +10,40 @@ import FileUpload from '../../../ui/components/elements/FileUpload';
 import NumberInput from '../../../ui/components/elements/NumberInput';
 import OperatingHours from '../../../ui/components/elements/OperatingHours';
 import { useLocation } from '../../../logic/hooks/useLocation';
+import Swal from 'sweetalert2';
+import { APP_LOGO } from '../../../logic/utils/assets';
 
-const dealIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
+const Toast = Swal.mixin({
+  toast: true,
+  position: 'top-end',
+  showConfirmButton: false,
+  timer: 3000,
+  timerProgressBar: true,
+  customClass: {
+    popup: 'rounded-xl shadow-lg border border-gray-100'
+  }
 });
 
-const negotiateIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
+const createCustomMarker = (color: string) => {
+  return L.divIcon({
+    className: 'custom-div-icon',
+    html: `
+      <div style="position: relative; width: 30px; height: 42px; display: flex; align-items: center; justify-content: center;">
+        <svg width="30" height="42" viewBox="0 0 30 42" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0px 3px 4px rgba(0,0,0,0.35)); position: absolute; top: 0; left: 0;">
+          <path d="M15 0C6.71573 0 0 6.71573 0 15C0 26.25 15 42 15 42C15 42 30 26.25 30 15C30 6.71573 23.2843 0 15 0Z" fill="${color}"/>
+          <circle cx="15" cy="15" r="5" fill="white"/>
+        </svg>
+      </div>
+    `,
+    iconSize: [30, 42],
+    iconAnchor: [15, 42],
+    popupAnchor: [0, -36]
+  });
+};
 
-const failIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
+const dealIcon = createCustomMarker('#0d9488');      // Teal
+const negotiateIcon = createCustomMarker('#f97316'); // Bright Vibrant Orange
+const failIcon = createCustomMarker('#ef4444');      // Red
 
 const getStatusIcon = (status: string) => {
   if (status === 'DEAL') return dealIcon;
@@ -183,17 +190,28 @@ export default function CanvasForm({ pin, mode, onClose, onSave, onEdit }: Canva
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload)
             });
+            Toast.fire({
+              icon: 'success',
+              title: 'Data canvassing berhasil ditambahkan!'
+            });
           } else if (mode === 'edit' && pin?.id) {
             await fetch(`/api/canvassing/${pin.id}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload)
             });
+            Toast.fire({
+              icon: 'success',
+              title: 'Data canvassing berhasil diperbarui!'
+            });
           }
           onSave(payload);
         } catch (err) {
           console.error(err);
-          alert('Terjadi kesalahan saat menyimpan');
+          Toast.fire({
+            icon: 'error',
+            title: 'Terjadi kesalahan saat menyimpan'
+          });
         } finally {
           setSubmitting(false);
         }
@@ -221,7 +239,7 @@ export default function CanvasForm({ pin, mode, onClose, onSave, onEdit }: Canva
             </div>
           </div>
           <div className="bg-gray-50 rounded-xl relative overflow-hidden h-48 sm:h-64 border border-gray-200 z-0">
-            <MapContainer center={[mapCenter.lat, mapCenter.lng]} zoom={15} style={{ height: '100%', width: '100%' }}>
+            <MapContainer center={[mapCenter.lat, mapCenter.lng]} zoom={15} style={{ height: '100%', width: '100%' }} attributionControl={false}>
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
@@ -232,6 +250,11 @@ export default function CanvasForm({ pin, mode, onClose, onSave, onEdit }: Canva
                 </Marker>
               )}
             </MapContainer>
+            {/* Custom Watermark */}
+            <div className="absolute bottom-2 right-2 bg-white/95 backdrop-blur-sm px-2.5 py-1.5 rounded-lg shadow-sm border border-gray-100 flex items-center gap-1.5 z-[1000] pointer-events-none text-[10px] font-bold text-gray-700">
+              <img src={APP_LOGO} alt="Boediman Logo" className="w-4 h-4 rounded-md object-cover" />
+              <span>Boediman Maps</span>
+            </div>
           </div>
         </div>
 
