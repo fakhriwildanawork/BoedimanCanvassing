@@ -57,10 +57,45 @@ interface CanvassingDashboardProps {
 export default function CanvassingDashboard({ pins, loading, onAdd, onEdit, onView, onDelete }: CanvassingDashboardProps) {
   const [activeTab, setActiveTab] = useState<'ALL' | 'DEAL' | 'NEGOTIATE' | 'FAIL'>('ALL');
   
+  const dealCount = pins.filter(p => p.status === 'DEAL').length;
+  const negotiateCount = pins.filter(p => p.status === 'NEGOTIATE').length;
+  const failCount = pins.filter(p => p.status === 'FAIL').length;
+
   const filteredPins = pins.filter(p => activeTab === 'ALL' || p.status === activeTab);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4 sm:gap-6">
+      {/* Premium Compact Mini Stats Row */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        <div className="bg-white border border-gray-100 rounded-xl p-2.5 sm:p-3.5 shadow-sm flex items-center gap-2 sm:gap-3">
+          <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg bg-teal-50 flex items-center justify-center shrink-0">
+            <span className="w-2.5 h-2.5 rounded-full bg-teal-600 animate-pulse"></span>
+          </div>
+          <div className="min-w-0">
+            <p className="text-[9px] sm:text-[11px] font-semibold text-gray-400 uppercase tracking-wider truncate">Deal</p>
+            <h4 className="text-sm sm:text-xl font-black text-teal-600 leading-none mt-0.5 sm:mt-1">{dealCount}</h4>
+          </div>
+        </div>
+        <div className="bg-white border border-gray-100 rounded-xl p-2.5 sm:p-3.5 shadow-sm flex items-center gap-2 sm:gap-3">
+          <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
+            <span className="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
+          </div>
+          <div className="min-w-0">
+            <p className="text-[9px] sm:text-[11px] font-semibold text-gray-400 uppercase tracking-wider truncate">Negotiate</p>
+            <h4 className="text-sm sm:text-xl font-black text-orange-500 leading-none mt-0.5 sm:mt-1">{negotiateCount}</h4>
+          </div>
+        </div>
+        <div className="bg-white border border-gray-100 rounded-xl p-2.5 sm:p-3.5 shadow-sm flex items-center gap-2 sm:gap-3">
+          <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
+            <span className="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+          </div>
+          <div className="min-w-0">
+            <p className="text-[9px] sm:text-[11px] font-semibold text-gray-400 uppercase tracking-wider truncate">Fail</p>
+            <h4 className="text-sm sm:text-xl font-black text-red-500 leading-none mt-0.5 sm:mt-1">{failCount}</h4>
+          </div>
+        </div>
+      </div>
+
       {/* Top Full Width Map */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden h-[250px] sm:h-[400px] z-0 relative">
         {loading && (
@@ -105,19 +140,25 @@ export default function CanvassingDashboard({ pins, loading, onAdd, onEdit, onVi
 
         {/* Tabs */}
         <div className="flex gap-2 sm:gap-4 mb-6 border-b border-gray-100 overflow-x-auto whitespace-nowrap scrollbar-none no-scrollbar">
-          {(['ALL', 'DEAL', 'NEGOTIATE', 'FAIL'] as const).map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`pb-2 px-1 text-xs sm:text-sm font-bold border-b-2 transition-colors whitespace-nowrap shrink-0 ${
-                activeTab === tab 
-                  ? 'border-teal-500 text-teal-600' 
-                  : 'border-transparent text-gray-400 hover:text-gray-600'
-              }`}
-            >
-              {tab === 'ALL' ? 'Semua' : tab === 'DEAL' ? 'Success (Deal)' : tab === 'NEGOTIATE' ? 'Negotiate' : 'Fail'}
-            </button>
-          ))}
+          {(['ALL', 'DEAL', 'NEGOTIATE', 'FAIL'] as const).map(tab => {
+            const count = tab === 'ALL' ? pins.length : tab === 'DEAL' ? dealCount : tab === 'NEGOTIATE' ? negotiateCount : failCount;
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`pb-2 px-1 text-xs sm:text-sm font-bold border-b-2 transition-colors whitespace-nowrap shrink-0 ${
+                  activeTab === tab 
+                    ? 'border-teal-500 text-teal-600' 
+                    : 'border-transparent text-gray-400 hover:text-gray-600'
+                }`}
+              >
+                {tab === 'ALL' ? `Semua (${count})` : 
+                 tab === 'DEAL' ? `Success (${count})` : 
+                 tab === 'NEGOTIATE' ? `Negotiate (${count})` : 
+                 `Fail (${count})`}
+              </button>
+            );
+          })}
         </div>
 
         {/* Card List representation */}
